@@ -23,6 +23,13 @@ test.after(() => {
   });
 });
 
+test('GET /validation-key.txt - returns domain validation key', async () => {
+  const res = await fetch(`${baseUrl}/validation-key.txt`);
+  assert.strictEqual(res.status, 200);
+  const text = await res.text();
+  assert.ok(text.length > 0);
+});
+
 test('GET /api/health - returns status ok', async () => {
   const res = await fetch(`${baseUrl}/api/health`);
   assert.strictEqual(res.status, 200);

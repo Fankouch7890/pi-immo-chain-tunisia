@@ -125,6 +125,14 @@ const blockchainLedger = [
 
 // Routes
 
+// Route for Pi Domain Validation
+app.get('/validation-key.txt', (req, res) => {
+  if (process.env.PI_VALIDATION_KEY) {
+    return res.type('text/plain').send(process.env.PI_VALIDATION_KEY);
+  }
+  res.sendFile(path.join(__dirname, 'public', 'validation-key.txt'));
+});
+
 // Get all properties
 app.get('/api/properties', (req, res) => {
   res.json(properties);
