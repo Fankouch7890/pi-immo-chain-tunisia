@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pi Immo Chain Tunisia - منصة العقارات الرقمية عبر شبكة باي</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;600;700;800&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- Header / Navbar -->
+    <header class="navbar">
+        <div class="container nav-container">
+            <div class="brand">
+                <i class="fa-solid fa-building-columns logo-icon"></i>
+                <div class="brand-text">
+                    <span class="brand-name">Pi Immo Chain</span>
+                    <span class="brand-country">تونس 🇹🇳</span>
+                </div>
+            </div>
+
+            <nav class="nav-links">
+                <a href="#properties" class="active"><i class="fa-solid fa-house"></i> العقارات</a>
+                <a href="#blockchain-ledger"><i class="fa-solid fa-link"></i> سجل البلوكشين</a>
+                <a href="#how-it-works"><i class="fa-solid fa-circle-info"></i> كيف يعمل المشروع</a>
+            </nav>
+
+            <div class="wallet-section">
+                <button id="walletBtn" class="btn btn-pi">
+                    <i class="fa-solid fa-wallet"></i>
+                    <span id="walletBtnText">ربط محفظة Pi</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Hero Banner -->
+    <section class="hero">
+        <div class="container hero-content">
+            <h1>عقارات تونس بين يديك عبر شبكة <span class="highlight-pi">Pi Network</span></h1>
+            <p>أول منصة عقارية لا مركزية موثقة بلغة عقود البلوكشين الذكية لشراء وبيع واستئجار العقارات في جميع الولايات التونسية باستخدام عملة Pi.</p>
+
+            <div class="stats-row">
+                <div class="stat-box">
+                    <span class="stat-number" id="statProperties">12+</span>
+                    <span class="stat-label">عقار مدرج</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-number" id="statTransactions">150+</span>
+                    <span class="stat-label">معاملة موثقة</span>
+                </div>
+                <div class="stat-box">
+                    <span class="stat-number">100%</span>
+                    <span class="stat-label">عقود ذكية آمنة</span>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Search & Filter Section -->
+    <section class="filter-section">
+        <div class="container">
+            <div class="filter-card">
+                <div class="filter-group">
+                    <label><i class="fa-solid fa-magnifying-glass"></i> البحث</label>
+                    <input type="text" id="searchInput" placeholder="ابحث باسم العقار أو الوصف...">
+                </div>
+
+                <div class="filter-group">
+                    <label><i class="fa-solid fa-location-dot"></i> المدينة / الولاية</label>
+                    <select id="cityFilter">
+                        <option value="all">كل الولايات</option>
+                        <option value="تونس">تونس العاصمة</option>
+                        <option value="سوسة">سوسة</option>
+                        <option value="الحمامات">الحمامات</option>
+                        <option value="صفاقس">صفاقس</option>
+                        <option value="المنستير">المنستير</option>
+                        <option value="جربة">جربة</option>
+                        <option value="بنزرت">بنزرت</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <label><i class="fa-solid fa-building"></i> نوع العقار</label>
+                    <select id="typeFilter">
+                        <option value="all">جميع الأنواع</option>
+                        <option value="شقة">شقة</option>
+                        <option value="فيلا">فيلا</option>
+                        <option value="أرض">أرض مجهزة</option>
+                        <option value="تجاري">محل تجاري</option>
+                    </select>
+                </div>
+
+                <div class="filter-group">
+                    <button id="resetFiltersBtn" class="btn btn-secondary">
+                        <i class="fa-solid fa-rotate-right"></i> إعادة ضبط
+                    </button>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Properties Grid -->
+    <section id="properties" class="properties-section">
+        <div class="container">
+            <div class="section-title">
+                <h2>العقارات المتاحة للبيع والكرى بـ Pi</h2>
+                <p>اختر العقار المناسب وإتمام الشراء مباشرة عبر المحفظة</p>
+            </div>
+
+            <div id="propertiesGrid" class="properties-grid">
+                <!-- Loaded dynamically via JavaScript -->
+            </div>
+        </div>
+    </section>
+
+    <!-- Blockchain Ledger Verification Section -->
+    <section id="blockchain-ledger" class="ledger-section">
+        <div class="container">
+            <div class="section-title">
+                <h2><i class="fa-solid fa-cubes"></i> سجل الملكية والصفقات الشفافة (Pi Ledger)</h2>
+                <p>تأكيد وتوثيق العقود الملكية غير القابلة للتزوير على شبكة Pi Immo Chain</p>
+            </div>
+
+            <div class="ledger-card">
+                <div class="ledger-header">
+                    <span>تأكيد عقد العقار الهشام</span>
+                    <span class="badge badge-success"><i class="fa-solid fa-check"></i> موثق بالبلوكشين</span>
+                </div>
+                <div class="table-responsive">
+                    <table class="ledger-table">
+                        <thead>
+                            <tr>
+                                <th>معرف الصفقة (Hash)</th>
+                                <th>العقار</th>
+                                <th>المشتري (Wallet)</th>
+                                <th>القيمة بـ Pi</th>
+                                <th>الحالة</th>
+                                <th>التاريخ</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ledgerTableBody">
+                            <!-- Populated dynamically -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- How It Works Section -->
+    <section id="how-it-works" class="info-section">
+        <div class="container">
+            <div class="section-title">
+                <h2>كيف تعمل منصة Pi Immo Chain Tunisia؟</h2>
+            </div>
+            <div class="steps-grid">
+                <div class="step-card">
+                    <div class="step-icon"><i class="fa-solid fa-wallet"></i></div>
+                    <h3>1. ربط محفظة Pi Network</h3>
+                    <p>قم بالربط المباشر مع محفظتك لتحديد الرصيد والقيام بالمعاملات الآمنة.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-icon"><i class="fa-solid fa-city"></i></div>
+                    <h3>2. اختيار العقار المناسب</h3>
+                    <p>استعرض الفيلات والشقق والأراضي الموثقة مع كافة المعطيات والسندات العقارية.</p>
+                </div>
+                <div class="step-card">
+                    <div class="step-icon"><i class="fa-solid fa-file-contract"></i></div>
+                    <h3>3. تنفيذ العقد الذكي</h3>
+                    <p>يتم نقل ملكية العقار وتسجيل المعاملة تلقائياً برقم هاش غير قابل للتغيير.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- Property Details Modal -->
+    <div id="detailsModal" class="modal">
+        <div class="modal-content">
+            <span class="close-modal" id="closeDetailsModal">&times;</span>
+            <div id="modalDetailsBody"></div>
+        </div>
+    </div>
+
+    <!-- Pi Payment Modal -->
+    <div id="paymentModal" class="modal">
+        <div class="modal-content modal-payment">
+            <span class="close-modal" id="closePaymentModal">&times;</span>
+            <div class="payment-header">
+                <i class="fa-solid fa-coins pi-coin-icon"></i>
+                <h3>تأكيد الدفع عبر Pi Network</h3>
+            </div>
+            <div id="paymentModalBody">
+                <!-- Content injected dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Footer -->
+    <footer>
+        <div class="container footer-content">
+            <p>&copy; 2026 Pi Immo Chain Tunisia - منصة العقارات الرقمية المعتمدة على Pi Network في تونس.</p>
+        </div>
+    </footer>
+
+    <!-- JS Scripts -->
+    <script src="app.js"></script>
+</body>
+</html>

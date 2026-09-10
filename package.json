@@ -1,0 +1,22 @@
+{
+  "name": "pi-immo-chain-tunisia",
+  "version": "1.0.0",
+  "description": "Pi Immo Chain Tunisia - Decentralized & Pi Network Real Estate Marketplace in Tunisia",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "test": "node --test test/*.test.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2"
+  },
+  "keywords": [
+    "pi-network",
+    "real-estate",
+    "tunisia",
+    "blockchain",
+    "immo-chain"
+  ],
+  "author": "Pi Immo Chain Tunisia Team",
+  "license": "MIT"
+}
