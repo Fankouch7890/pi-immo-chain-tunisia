@@ -1,58 +1,162 @@
-// Pi Immo Chain Tunisia Frontend Application Logic
-
+// Global State
 let propertiesData = [];
 let userWallet = null;
-let simulatedBalance = 15000; // 15,000 Pi
+let mapInstance = null;
+let mapMarkers = [];
+let currentChatPropertyId = null;
 
+// DOM Elements
+const propertiesGrid = document.getElementById('propertiesGrid');
+const searchInput = document.getElementById('searchInput');
+const cityFilter = document.getElementById('cityFilter');
+const typeFilter = document.getElementById('typeFilter');
+const resetFiltersBtn = document.getElementById('resetFiltersBtn');
+const walletBtn = document.getElementById('walletBtn');
+const walletBtnText = document.getElementById('walletBtnText');
+const ledgerTableBody = document.getElementById('ledgerTableBody');
+const pitBalance = document.getElementById('pitBalance');
+const claimDailyBtn = document.getElementById('claimDailyBtn');
+
+// Modals
+const detailsModal = document.getElementById('detailsModal');
+const closeDetailsModal = document.getElementById('closeDetailsModal');
+const modalDetailsBody = document.getElementById('modalDetailsBody');
+
+const paymentModal = document.getElementById('paymentModal');
+const closePaymentModal = document.getElementById('closePaymentModal');
+const paymentModalBody = document.getElementById('paymentModalBody');
+
+const addPropertyModal = document.getElementById('addPropertyModal');
+const addPropertyBtn = document.getElementById('addPropertyBtn');
+const closeAddPropertyModal = document.getElementById('closeAddPropertyModal');
+const addPropertyForm = document.getElementById('addPropertyForm');
+
+const chatModal = document.getElementById('chatModal');
+const closeChatModal = document.getElementById('closeChatModal');
+const chatMessagesBox = document.getElementById('chatMessagesBox');
+const chatForm = document.getElementById('chatForm');
+const chatInput = document.getElementById('chatInput');
+const chatPropertyTitle = document.getElementById('chatPropertyTitle');
+const chatPropertyPrice = document.getElementById('chatPropertyPrice');
+
+const contractModal = document.getElementById('contractModal');
+const closeContractModal = document.getElementById('closeContractModal');
+const contractReceiptBody = document.getElementById('contractReceiptBody');
+
+// Initialize Application
 document.addEventListener('DOMContentLoaded', () => {
     fetchProperties();
     fetchLedger();
+    fetchRewards();
+    initLeafletMap();
     setupEventListeners();
 });
 
-// Fetch properties list from backend API
+// Initialize Leaflet Map
+function initLeafletMap() {
+    const mapElement = document.getElementById('map');
+    if (!mapElement || typeof L === 'undefined') return;
+
+    // Center map on Tunisia (lat: 34.0, lng: 9.5, zoom level: 6)
+    mapInstance = L.map('map').setView([35.8, 10.0], 7);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors | Pi Immo Chain Tunisia'
+    }).addTo(mapInstance);
+}
+
+// Update Map Markers with Properties
+function updateMapMarkers(properties) {
+    if (!mapInstance || typeof L === 'undefined') return;
+
+    // Clear existing markers
+    mapMarkers.forEach(m => mapInstance.removeLayer(m));
+    mapMarkers = [];
+
+    properties.forEach(prop => {
+        if (prop.lat && prop.lng) {
+            const marker = L.marker([prop.lat, prop.lng]).addTo(mapInstance);
+            marker.bindPopup(`
+                <div style="text-align: right; font-family: 'Cairo', sans-serif;">
+                    <img src="${prop.image}" alt="${prop.title}" style="width:100%; height:90px; object-fit:cover; border-radius:6px; margin-bottom:5px;">
+                    <strong style="font-size:0.95rem; color:#1a103c;">${prop.title}</strong><br>
+                    <span style="color:#f5a623; font-weight:bold;">${prop.pricePi} Pi</span> (${prop.priceTnd.toLocaleString('ar-TN')} د.ت)<br>
+                    <button onclick="openDetailsModal('${prop.id}')" style="margin-top:6px; background:#7030a0; color:#fff; border:none; padding:4px 10px; border-radius:4px; cursor:pointer; font-size:0.8rem;">
+                        <i class="fa-solid fa-eye"></i> عرض التفاصيل
+                    </button>
+                </div>
+            `);
+            mapMarkers.push(marker);
+        }
+    });
+}
+
+// Fetch Properties from API
 async function fetchProperties() {
     try {
-        const response = await fetch('/api/properties');
-        if (!response.ok) throw new Error('فشل جلب البيانات');
-        propertiesData = await response.json();
+        const res = await fetch('/api/properties');
+        if (!res.ok) throw new Error('فشل جلب البيانات');
+        propertiesData = await res.json();
         renderProperties(propertiesData);
-    } catch (error) {
-        console.error('Error loading properties:', error);
-        document.getElementById('propertiesGrid').innerHTML = '<p class="error-msg">حدث خطأ في تحميل العقارات. يرجى المحاولة لاحقاً.</p>';
+        updateMapMarkers(propertiesData);
+        document.getElementById('statProperties').innerText = `${propertiesData.length}+`;
+    } catch (err) {
+        console.error(err);
+        propertiesGrid.innerHTML = `
+            <div class="empty-state">
+                <i class="fa-solid fa-triangle-exclamation" style="font-size:2.5rem; color:#e74c3c;"></i>
+                <p>حدث خطأ أثناء تحميل العقارات. يرجى المحاولة لاحقاً.</p>
+            </div>
+        `;
     }
 }
 
-// Render properties grid
-function renderProperties(list) {
-    const grid = document.getElementById('propertiesGrid');
-    if (!list || list.length === 0) {
-        grid.innerHTML = '<p class="no-results">لا توجد عقارات تطابق خيارات البحث المختارة.</p>';
+// Render Property Cards
+function renderProperties(properties) {
+    if (!properties || properties.length === 0) {
+        propertiesGrid.innerHTML = `
+            <div class="empty-state">
+                <i class="fa-solid fa-house-circle-xmark"></i>
+                <p>لا توجد عقارات تطابق خيارات البحث الحالية.</p>
+            </div>
+        `;
         return;
     }
 
-    grid.innerHTML = list.map(prop => `
+    propertiesGrid.innerHTML = properties.map(prop => `
         <div class="property-card">
-            <div class="property-img-wrapper">
-                <img src="${prop.image}" alt="${prop.title}" class="property-img" onerror="this.src='https://images.unsplash.com/photo-1560518883-ce09059eeffa?auto=format&fit=crop&w=800&q=80'">
-                <span class="property-tag">${prop.type}</span>
-                <span class="property-verified-badge"><i class="fa-solid fa-shield-halved"></i> عقد موثق</span>
+            <div class="card-image-wrapper">
+                <img src="${prop.image}" alt="${prop.title}" class="property-image" loading="lazy">
+                <span class="badge badge-city"><i class="fa-solid fa-location-dot"></i> ${prop.city}</span>
+                <span class="badge badge-type">${prop.type}</span>
             </div>
-            <div class="property-content">
-                <div class="property-location"><i class="fa-solid fa-location-dot"></i> ${prop.city} - ${prop.area}</div>
+            <div class="card-content">
                 <h3 class="property-title">${prop.title}</h3>
+                <p class="property-area"><i class="fa-solid fa-map-pin"></i> ${prop.area}، ${prop.city}</p>
+
                 <div class="property-specs">
-                    <span><i class="fa-solid fa-maximize"></i> ${prop.space} م²</span>
-                    <span><i class="fa-solid fa-bed"></i> ${prop.rooms} غرف</span>
-                    <span><i class="fa-solid fa-bath"></i> ${prop.bathrooms} حمام</span>
+                    <span><i class="fa-solid fa-vector-square"></i> ${prop.space} م²</span>
+                    ${prop.rooms > 0 ? `<span><i class="fa-solid fa-bed"></i> ${prop.rooms} غرف</span>` : ''}
+                    ${prop.bathrooms > 0 ? `<span><i class="fa-solid fa-bath"></i> ${prop.bathrooms} حمام</span>` : ''}
                 </div>
-                <div class="property-price-row">
+
+                <div class="property-price-box">
                     <div>
-                        <div class="price-pi">${prop.pricePi.toLocaleString()} Pi</div>
-                        <div class="price-tnd">~ ${prop.priceTnd.toLocaleString()} د.ت</div>
+                        <span class="price-pi">${prop.pricePi} <i class="fa-solid fa-coins pi-icon"></i></span>
+                        <span class="price-tnd">≈ ${prop.priceTnd.toLocaleString('ar-TN')} د.ت</span>
                     </div>
-                    <button class="btn btn-pi" onclick="openPaymentModal('${prop.id}')">
-                        <i class="fa-solid fa-cart-shopping"></i> شراء / استئجار
+                    <span class="cashback-tag">+${Math.round(prop.pricePi * 0.1)} $PIT</span>
+                </div>
+
+                <div class="card-actions-row">
+                    <button class="btn btn-primary" onclick="openDetailsModal('${prop.id}')">
+                        <i class="fa-solid fa-eye"></i> التفاصيل
+                    </button>
+                    <button class="btn btn-chat" onclick="openChatModal('${prop.id}')" title="دردشة مع البائع">
+                        <i class="fa-solid fa-comments"></i>
+                    </button>
+                    <button class="btn btn-buy" onclick="openPaymentModal('${prop.id}')">
+                        <i class="fa-solid fa-shopping-cart"></i> شراء
                     </button>
                 </div>
             </div>
@@ -60,182 +164,393 @@ function renderProperties(list) {
     `).join('');
 }
 
-// Fetch ledger history
-async function fetchLedger() {
+// Fetch Rewards Balance
+async function fetchRewards() {
     try {
-        const response = await fetch('/api/blockchain/ledger');
-        if (!response.ok) return;
-        const ledger = await response.json();
-        renderLedger(ledger);
-    } catch (err) {
-        console.error('Error fetching ledger:', err);
+        const res = await fetch('/api/rewards');
+        if (res.ok) {
+            const data = await res.json();
+            pitBalance.innerText = data.balancePIT;
+        }
+    } catch (e) {
+        console.error(e);
     }
 }
 
-function renderLedger(ledgerList) {
-    const tbody = document.getElementById('ledgerTableBody');
-    tbody.innerHTML = ledgerList.map(item => `
+// Claim Daily Rewards
+claimDailyBtn.addEventListener('click', async () => {
+    try {
+        const res = await fetch('/api/rewards/claim', { method: 'POST' });
+        const data = await res.json();
+        alert(data.message);
+        if (data.success) {
+            pitBalance.innerText = data.balancePIT;
+        }
+    } catch (e) {
+        alert('حدث خطأ أثناء المطالبة بالمكافأة');
+    }
+});
+
+// Fetch Blockchain Ledger
+async function fetchLedger() {
+    try {
+        const res = await fetch('/api/blockchain/ledger');
+        if (!res.ok) return;
+        const ledger = await res.json();
+        renderLedger(ledger);
+    } catch (err) {
+        console.error(err);
+    }
+}
+
+// Render Ledger Table
+function renderLedger(ledger) {
+    if (!ledger || ledger.length === 0) {
+        ledgerTableBody.innerHTML = `<tr><td colspan="6">لا توجد صفقات موثقة بعد.</td></tr>`;
+        return;
+    }
+
+    ledgerTableBody.innerHTML = ledger.map(item => `
         <tr>
-            <td><span class="hash-code">${item.txHash}</span></td>
+            <td class="hash-col"><code>${item.txHash}</code></td>
             <td><strong>${item.propertyTitle}</strong></td>
-            <td>${item.buyerWallet.substring(0, 10)}...</td>
-            <td><strong style="color: var(--primary-color)">${item.amountPi.toLocaleString()} Pi</strong></td>
-            <td><span class="badge badge-success"><i class="fa-solid fa-circle-check"></i> ${item.status}</span></td>
-            <td>${item.timestamp}</td>
+            <td><span class="wallet-tag">${item.buyerWallet}</span></td>
+            <td><span class="pi-amount">${item.amountPi} Pi</span></td>
+            <td><span class="badge badge-success"><i class="fa-solid fa-check"></i> ${item.status}</span></td>
+            <td>
+                <span class="tx-time">${item.timestamp}</span>
+                <button class="btn btn-receipt" onclick="viewContractReceipt('${item.txHash}')">
+                    <i class="fa-solid fa-file-invoice"></i> العقد
+                </button>
+            </td>
         </tr>
     `).join('');
 }
 
-// Set up Search & Filter Event Listeners
-function setupEventListeners() {
-    const searchInput = document.getElementById('searchInput');
-    const cityFilter = document.getElementById('cityFilter');
-    const typeFilter = document.getElementById('typeFilter');
-    const resetBtn = document.getElementById('resetFiltersBtn');
-    const walletBtn = document.getElementById('walletBtn');
+// View Smart Contract Receipt
+async function viewContractReceipt(txHash) {
+    try {
+        const res = await fetch(`/api/contract/${txHash}`);
+        const data = await res.json();
 
+        if (!res.ok || !data.transactionDetails) {
+            alert('تعذر تحميل العقد الرقمي');
+            return;
+        }
+
+        const tx = data.transactionDetails;
+        contractReceiptBody.innerHTML = `
+            <div class="receipt-card">
+                <div class="receipt-header">
+                    <i class="fa-solid fa-certificate gold-seal"></i>
+                    <h2>${data.contractTitle}</h2>
+                    <p class="receipt-subtitle">${data.jurisdiction}</p>
+                </div>
+                <div class="receipt-divider"></div>
+                <div class="receipt-body">
+                    <p><strong>رقم الهاش (Tx Hash):</strong> <code>${tx.txHash}</code></p>
+                    <p><strong>العقار المشترى:</strong> ${tx.propertyTitle}</p>
+                    <p><strong>محفظة المشتري:</strong> ${tx.buyerWallet}</p>
+                    <p><strong>القيمة المدفوعة:</strong> ${tx.amountPi} Pi</p>
+                    <p><strong>تاريخ التوثيق:</strong> ${tx.timestamp}</p>
+                    <p><strong>العقد الذكي:</strong> <code>${data.smartContractAddress}</code></p>
+                </div>
+                <div class="receipt-footer">
+                    <span class="verified-stamp"><i class="fa-solid fa-shield-halved"></i> موثق 100% على شبكة Pi Network</span>
+                    <button class="btn btn-primary" onclick="window.print()"><i class="fa-solid fa-print"></i> طباعة العقد</button>
+                </div>
+            </div>
+        `;
+        contractModal.style.display = 'block';
+    } catch (e) {
+        alert('حدث خطأ أثناء تحميل العقد الرقمي');
+    }
+}
+
+// Open Property Details Modal
+function openDetailsModal(id) {
+    const prop = propertiesData.find(p => p.id === id);
+    if (!prop) return;
+
+    modalDetailsBody.innerHTML = `
+        <div class="details-modal-wrapper">
+            <img src="${prop.image}" alt="${prop.title}" class="details-img">
+            <div class="details-info">
+                <h2>${prop.title}</h2>
+                <p class="details-location"><i class="fa-solid fa-location-dot"></i> ${prop.area}، ${prop.city}</p>
+
+                <div class="details-price-row">
+                    <span class="price-large">${prop.pricePi} Pi</span>
+                    <span class="price-sub">≈ ${prop.priceTnd.toLocaleString('ar-TN')} دينار تونسي</span>
+                </div>
+
+                <div class="specs-grid">
+                    <div class="spec-item"><i class="fa-solid fa-vector-square"></i> المساحة: ${prop.space} م²</div>
+                    <div class="spec-item"><i class="fa-solid fa-building"></i> النوع: ${prop.type}</div>
+                    <div class="spec-item"><i class="fa-solid fa-bed"></i> الغرف: ${prop.rooms}</div>
+                    <div class="spec-item"><i class="fa-solid fa-bath"></i> الحمامات: ${prop.bathrooms}</div>
+                </div>
+
+                <div class="description-box">
+                    <h4>الوصف:</h4>
+                    <p>${prop.description}</p>
+                </div>
+
+                <div class="details-actions">
+                    <button class="btn btn-primary btn-block" onclick="closeDetailsModalFunc(); openPaymentModal('${prop.id}');">
+                        <i class="fa-solid fa-shopping-cart"></i> شراء بـ Pi الآن (+${Math.round(prop.pricePi * 0.1)} $PIT كاشباك)
+                    </button>
+                    <button class="btn btn-chat btn-block" onclick="closeDetailsModalFunc(); openChatModal('${prop.id}');" style="margin-top:10px;">
+                        <i class="fa-solid fa-comments"></i> التحدث مع مالك العقار
+                    </button>
+                </div>
+            </div>
+        </div>
+    `;
+    detailsModal.style.display = 'block';
+}
+
+function closeDetailsModalFunc() {
+    detailsModal.style.display = 'none';
+}
+
+// Open Pi Payment Modal
+function openPaymentModal(id) {
+    const prop = propertiesData.find(p => p.id === id);
+    if (!prop) return;
+
+    paymentModalBody.innerHTML = `
+        <div class="payment-box">
+            <h4>تفاصيل الصفقة:</h4>
+            <div class="payment-summary">
+                <p><span>العقار:</span> <strong>${prop.title}</strong></p>
+                <p><span>الموقع:</span> <strong>${prop.city}</strong></p>
+                <p><span>المبلغ بـ Pi:</span> <strong class="pi-amount">${prop.pricePi} Pi</strong></p>
+                <p><span>المكافأة المكتسبة:</span> <strong style="color:#f5a623;">+${Math.round(prop.pricePi * 0.1)} $PIT</strong></p>
+            </div>
+
+            <div class="wallet-address-input">
+                <label>عنوان محفظة Pi الخاص بك:</label>
+                <input type="text" id="buyerWalletInput" value="${userWallet || 'G7A89X2PI_TUNISIA_USER'}" placeholder="أدخل عنوان محفظة Pi...">
+            </div>
+
+            <div id="paymentResult" style="margin-top: 15px;"></div>
+
+            <button id="confirmPayBtn" class="btn btn-pi btn-block" onclick="executePiPayment('${prop.id}', ${prop.pricePi})">
+                <i class="fa-solid fa-check-circle"></i> تأكيد تحويل ${prop.pricePi} Pi وتوثيق العقد
+            </button>
+        </div>
+    `;
+    paymentModal.style.display = 'block';
+}
+
+// Execute Pi Payment
+async function executePiPayment(propertyId, amountPi) {
+    const buyerWalletInput = document.getElementById('buyerWalletInput');
+    const confirmPayBtn = document.getElementById('confirmPayBtn');
+    const paymentResult = document.getElementById('paymentResult');
+
+    const buyerWallet = buyerWalletInput ? buyerWalletInput.value.trim() : 'G_GUEST_WALLET';
+
+    confirmPayBtn.disabled = true;
+    confirmPayBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> جاري الاتصال بشبكة Pi Network وتوثيق البلوكشين...`;
+
+    try {
+        const res = await fetch('/api/pi/pay', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ propertyId, buyerWallet, amountPi })
+        });
+
+        const data = await res.json();
+
+        if (data.success) {
+            paymentResult.innerHTML = `
+                <div class="alert alert-success">
+                    <i class="fa-solid fa-circle-check"></i> ${data.message}<br>
+                    <small>رمز التوثيق (Tx Hash): <code>${data.txHash}</code></small><br>
+                    <small>مبروك! حصلت على +${data.cashbackPIT} $PIT كاشباك.</small>
+                </div>
+            `;
+            confirmPayBtn.style.display = 'none';
+            fetchLedger();
+            fetchRewards();
+        } else {
+            paymentResult.innerHTML = `<div class="alert alert-danger">${data.message}</div>`;
+            confirmPayBtn.disabled = false;
+            confirmPayBtn.innerText = 'إعادة المحاولة';
+        }
+    } catch (err) {
+        paymentResult.innerHTML = `<div class="alert alert-danger">حدث خطأ في الاتصال بالخادم.</div>`;
+        confirmPayBtn.disabled = false;
+        confirmPayBtn.innerText = 'إعادة المحاولة';
+    }
+}
+
+// Open Chat Modal
+async function openChatModal(propertyId) {
+    currentChatPropertyId = propertyId;
+    const prop = propertiesData.find(p => p.id === propertyId);
+
+    if (prop) {
+        chatPropertyTitle.innerText = prop.title;
+        chatPropertyPrice.innerText = `${prop.pricePi} Pi (${prop.city})`;
+    }
+
+    chatMessagesBox.innerHTML = '<p style="text-align:center;">جاري تحميل الرسائل...</p>';
+    chatModal.style.display = 'block';
+
+    await loadChatMessages(propertyId);
+}
+
+// Load Chat Messages
+async function loadChatMessages(propertyId) {
+    try {
+        const res = await fetch(`/api/chat/${propertyId}`);
+        const msgs = await res.json();
+
+        if (!msgs || msgs.length === 0) {
+            chatMessagesBox.innerHTML = `<p class="empty-chat">لا توجد رسائل سابقة. كن أول من يتواصل مع مالك العقار!</p>`;
+            return;
+        }
+
+        chatMessagesBox.innerHTML = msgs.map(m => `
+            <div class="chat-bubble ${m.sender.includes('صاحب') ? 'chat-owner' : 'chat-user'}">
+                <div class="chat-sender">${m.sender} <span class="chat-time">${m.time}</span></div>
+                <div class="chat-text">${m.message}</div>
+            </div>
+        `).join('');
+
+        chatMessagesBox.scrollTop = chatMessagesBox.scrollHeight;
+    } catch (e) {
+        chatMessagesBox.innerHTML = `<p class="empty-chat">تعذر تحميل الرسائل.</p>`;
+    }
+}
+
+// Send Chat Message
+chatForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const text = chatInput.value.trim();
+    if (!text || !currentChatPropertyId) return;
+
+    try {
+        await fetch('/api/chat', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                propertyId: currentChatPropertyId,
+                sender: 'مشتري المهتم',
+                message: text,
+                senderWallet: userWallet || 'G_USER_GUEST'
+            })
+        });
+
+        chatInput.value = '';
+        loadChatMessages(currentChatPropertyId);
+    } catch (e) {
+        alert('فشل إرسال الرسالة');
+    }
+});
+
+// Submit New Property Listing Form
+addPropertyForm.addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const title = document.getElementById('propTitle').value.trim();
+    const city = document.getElementById('propCity').value;
+    const type = document.getElementById('propType').value;
+    const pricePi = document.getElementById('propPricePi').value;
+    const space = document.getElementById('propSpace').value;
+    const description = document.getElementById('propDescription').value.trim();
+    const image = document.getElementById('propImage').value.trim();
+
+    try {
+        const res = await fetch('/api/properties', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                title, city, type, pricePi, space, description, image,
+                sellerWallet: userWallet || 'G_USER_LISTER_TN'
+            })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+            alert(data.message);
+            addPropertyModal.style.display = 'none';
+            addPropertyForm.reset();
+            fetchProperties();
+            fetchRewards();
+        } else {
+            alert(data.message || 'حدث خطأ أثناء إضافة العقار');
+        }
+    } catch (err) {
+        alert('حدث خطأ في الاتصال بالخادم');
+    }
+});
+
+// Event Listeners for Filters & Wallet
+function setupEventListeners() {
     searchInput.addEventListener('input', applyFilters);
     cityFilter.addEventListener('change', applyFilters);
     typeFilter.addEventListener('change', applyFilters);
 
-    resetBtn.addEventListener('click', () => {
+    resetFiltersBtn.addEventListener('click', () => {
         searchInput.value = '';
         cityFilter.value = 'all';
         typeFilter.value = 'all';
         renderProperties(propertiesData);
+        updateMapMarkers(propertiesData);
     });
 
-    walletBtn.addEventListener('click', handleWalletConnection);
+    walletBtn.addEventListener('click', toggleWalletConnection);
 
-    // Modal Close buttons
-    document.getElementById('closeDetailsModal').onclick = () => closeModal('detailsModal');
-    document.getElementById('closePaymentModal').onclick = () => closeModal('paymentModal');
+    // Modal Close Triggers
+    closeDetailsModal.onclick = () => detailsModal.style.display = 'none';
+    closePaymentModal.onclick = () => paymentModal.style.display = 'none';
+
+    addPropertyBtn.onclick = () => addPropertyModal.style.display = 'block';
+    closeAddPropertyModal.onclick = () => addPropertyModal.style.display = 'none';
+
+    closeChatModal.onclick = () => chatModal.style.display = 'none';
+    closeContractModal.onclick = () => contractModal.style.display = 'none';
+
+    window.onclick = (event) => {
+        if (event.target === detailsModal) detailsModal.style.display = 'none';
+        if (event.target === paymentModal) paymentModal.style.display = 'none';
+        if (event.target === addPropertyModal) addPropertyModal.style.display = 'none';
+        if (event.target === chatModal) chatModal.style.display = 'none';
+        if (event.target === contractModal) contractModal.style.display = 'none';
+    };
 }
 
+// Filter Logic
 function applyFilters() {
-    const searchTerm = document.getElementById('searchInput').value.toLowerCase().trim();
-    const city = document.getElementById('cityFilter').value;
-    const type = document.getElementById('typeFilter').value;
+    const query = searchInput.value.toLowerCase().trim();
+    const selectedCity = cityFilter.value;
+    const selectedType = typeFilter.value;
 
-    const filtered = propertiesData.filter(item => {
-        const matchesSearch = item.title.toLowerCase().includes(searchTerm) ||
-                              item.description.toLowerCase().includes(searchTerm) ||
-                              item.city.toLowerCase().includes(searchTerm);
-        const matchesCity = (city === 'all' || item.city === city);
-        const matchesType = (type === 'all' || item.type === type);
+    const filtered = propertiesData.filter(p => {
+        const matchesQuery = p.title.toLowerCase().includes(query) || p.description.toLowerCase().includes(query) || p.city.toLowerCase().includes(query);
+        const matchesCity = selectedCity === 'all' || p.city === selectedCity;
+        const matchesType = selectedType === 'all' || p.type === selectedType;
 
-        return matchesSearch && matchesCity && matchesType;
+        return matchesQuery && matchesCity && matchesType;
     });
 
     renderProperties(filtered);
+    updateMapMarkers(filtered);
 }
 
-// Handle Pi Wallet Connection
-function handleWalletConnection() {
+// Toggle Pi Wallet Connection
+function toggleWalletConnection() {
     if (!userWallet) {
-        // Generate simulated Pi Wallet address
-        userWallet = 'G' + Math.random().toString(36).substring(2, 12).toUpperCase() + 'PI_TN';
-        document.getElementById('walletBtnText').innerText = `${userWallet.substring(0, 8)}... (${simulatedBalance.toLocaleString()} Pi)`;
-        document.getElementById('walletBtn').classList.add('connected');
-        alert(`تم ربط محفظة Pi بنجاح!\nالعنوان: ${userWallet}\nالرصيد: ${simulatedBalance.toLocaleString()} Pi`);
+        userWallet = 'G' + Math.random().toString(36).substring(2, 12).toUpperCase() + '_TN_PI';
+        walletBtnText.innerText = `${userWallet.substring(0, 6)}...${userWallet.substring(userWallet.length - 4)}`;
+        walletBtn.classList.add('wallet-connected');
     } else {
-        alert(`المحفظة متصلة بالفعل.\nالعنوان: ${userWallet}\nالرصيد: ${simulatedBalance.toLocaleString()} Pi`);
+        userWallet = null;
+        walletBtnText.innerText = 'ربط محفظة Pi';
+        walletBtn.classList.remove('wallet-connected');
     }
 }
-
-// Modal handling
-function openModal(modalId) {
-    document.getElementById(modalId).classList.add('show');
-}
-
-function closeModal(modalId) {
-    document.getElementById(modalId).classList.remove('show');
-}
-
-// Open Payment Modal with Smart Contract simulator
-window.openPaymentModal = function(propertyId) {
-    const prop = propertiesData.find(p => p.id === propertyId);
-    if (!prop) return;
-
-    if (!userWallet) {
-        handleWalletConnection();
-    }
-
-    const modalBody = document.getElementById('paymentModalBody');
-    modalBody.innerHTML = `
-        <div style="text-align: center; margin-bottom: 20px;">
-            <h4>${prop.title} - ${prop.city}</h4>
-            <p style="color: var(--text-muted); font-size: 0.9rem;">${prop.type} بمساحة ${prop.space} م²</p>
-        </div>
-
-        <div style="background: #f8fafc; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-size: 0.95rem;">
-            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                <span>المبلغ المطلوب:</span>
-                <strong style="color: var(--primary-color);">${prop.pricePi.toLocaleString()} Pi</strong>
-            </div>
-            <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-                <span>رصيدك الحالي:</span>
-                <strong>${simulatedBalance.toLocaleString()} Pi</strong>
-            </div>
-            <div style="display: flex; justify-content: space-between;">
-                <span>رسوم العقد الذكي:</span>
-                <span style="color: var(--success-color);">مجاناً (مستضافة)</span>
-            </div>
-        </div>
-
-        <button id="confirmPayBtn" class="btn btn-pi btn-block" onclick="executePiPayment('${prop.id}', ${prop.pricePi})">
-            <i class="fa-solid fa-lock"></i> تأكيد العقد الشراء وتوقيع المعاملة
-        </button>
-    `;
-
-    openModal('paymentModal');
-};
-
-// Execute Pi payment
-window.executePiPayment = async function(propertyId, amountPi) {
-    const confirmBtn = document.getElementById('confirmPayBtn');
-    if (!confirmBtn) return;
-
-    confirmBtn.disabled = true;
-    confirmBtn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> جاري إرسال المعاملة إلى شبكة Pi...';
-
-    try {
-        const response = await fetch('/api/pi/pay', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json'
-            },
-            body: JSON.stringify({
-                propertyId,
-                buyerWallet: userWallet || 'G_DEMO_WALLET_TUNISIA_PI',
-                amountPi
-            })
-        });
-
-        const result = await response.json();
-
-        if (result.success) {
-            simulatedBalance -= amountPi;
-            document.getElementById('walletBtnText').innerText = `${userWallet.substring(0, 8)}... (${simulatedBalance.toLocaleString()} Pi)`;
-
-            document.getElementById('paymentModalBody').innerHTML = `
-                <div style="text-align: center; color: var(--success-color); padding: 20px 0;">
-                    <i class="fa-solid fa-circle-check" style="font-size: 4rem; margin-bottom: 15px;"></i>
-                    <h3 style="color: var(--text-dark);">تمت عملية الشراء وتوثيق الملكية بنجاح!</h3>
-                    <p style="color: var(--text-muted); font-size: 0.9rem; margin-top: 10px;">رقم المعاملة العقد الذكي (TX Hash):</p>
-                    <code style="display: block; background: #e2e8f0; padding: 8px; border-radius: 6px; margin: 10px 0; word-break: break-all;">${result.txHash}</code>
-                    <button class="btn btn-secondary btn-block" onclick="closeModal('paymentModal'); fetchLedger();">إغلاق وتحديث السجل</button>
-                </div>
-            `;
-        } else {
-            alert('فشلت العملية: ' + result.message);
-            confirmBtn.disabled = false;
-            confirmBtn.innerText = 'إعادة المحاولة';
-        }
-    } catch (err) {
-        console.error('Payment error:', err);
-        alert('حدث خطأ أثناء الاتصال بالخادم.');
-        confirmBtn.disabled = false;
-        confirmBtn.innerText = 'إعادة المحاولة';
-    }
-};
