@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ملفات التسجيل في Pi Developer Portal - Pi Immo Chain Tunisia</title>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;700;800&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Cairo', sans-serif;
+            background: #0f0c20;
+            color: #ffffff;
+            margin: 0;
+            padding: 20px;
+            direction: rtl;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        h1 {
+            color: #fcd34d;
+            text-align: center;
+            font-size: 22px;
+        }
+        .instructions {
+            background: #1e1b4b;
+            border: 1px solid #f59e0b;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 25px;
+            font-size: 15px;
+            line-height: 1.6;
+        }
+        .card {
+            background: #181534;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+            border: 1px solid #3b0764;
+        }
+        .card h2 {
+            font-size: 18px;
+            color: #fcd34d;
+            margin-top: 0;
+        }
+        .img-box {
+            text-align: center;
+            margin: 15px 0;
+            background: #000;
+            padding: 10px;
+            border-radius: 8px;
+        }
+        .img-box img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+        .field {
+            margin-bottom: 15px;
+        }
+        .field label {
+            display: block;
+            font-weight: bold;
+            font-size: 14px;
+            color: #d8b4fe;
+            margin-bottom: 5px;
+        }
+        .field input, .field textarea {
+            width: 100%;
+            padding: 10px;
+            border-radius: 8px;
+            border: 1px solid #6b21a8;
+            background: #0f0c20;
+            color: #fff;
+            font-family: inherit;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        .hint {
+            color: #10b981;
+            font-size: 13px;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>📱 ملفات Pi Developer Portal للهاتف</h1>
+
+        <div class="instructions">
+            💡 <strong>طريقة السهلة لمستخدمي الهاتف:</strong><br>
+            اضغط مطولاً (Long Press) بأصبعك على أي صورة أدناه ثم اختر <strong>"حفظ الصورة" (Save Image)</strong> لتم حفظها في استوديو الهاتف فوراً، ثم ارفعها مباشرة في Pi Developer Portal!
+        </div>
+
+        <div class="card">
+            <h2>1. شعار التطبيق (App Logo) - 512x512</h2>
+            <div class="img-box">
+                <img src="logo-preview.png" alt="App Logo 512x512">
+            </div>
+            <p class="hint">👆 اضغط مطولاً على الصورة أعلاه لحفظ الشعار في هاتفك.</p>
+        </div>
+
+        <div class="card">
+            <h2>2. صورة المعاينة الأولى (Screenshot 1)</h2>
+            <div class="img-box">
+                <img src="preview-hero.png" alt="Screenshot 1">
+            </div>
+            <p class="hint">👆 اضغط مطولاً على الصورة أعلاه لحفظها في هاتفك.</p>
+        </div>
+
+        <div class="card">
+            <h2>3. صورة المعاينة الثانية (Screenshot 2)</h2>
+            <div class="img-box">
+                <img src="preview-properties.png" alt="Screenshot 2">
+            </div>
+            <p class="hint">👆 اضغط مطولاً على الصورة أعلاه لحفظها في هاتفك.</p>
+        </div>
+
+        <div class="card">
+            <h2>4. النصوص الجاهزة للنقل</h2>
+
+            <div class="field">
+                <label>اسم التطبيق (App Name):</label>
+                <input type="text" value="Pi Immo Chain Tunisia" readonly onclick="this.select()">
+            </div>
+
+            <div class="field">
+                <label>العنوان الفرعي (Subtitle):</label>
+                <input type="text" value="أول منصة عقارية لا مركزية لشراء وتأجير العقارات بـ Pi في تونس" readonly onclick="this.select()">
+            </div>
+
+            <div class="field">
+                <label>الوصف (Description):</label>
+                <textarea rows="4" readonly onclick="this.select()">منصة Pi Immo Chain Tunisia هي أول تطبيق عقاري لا مركزي مخصص للجمهورية التونسية عبر شبكة Pi Network. يتيح للمستخدمين بيع وشراء وتأجير العقارات باستخدام عملة Pi مع عقود ذكية موثقة وخريطة تفاعلية لجميع الولايات التونسية.</textarea>
+            </div>
+
+            <div class="field">
+                <label>رابط مفتاح التحقق (Validation Key URL):</label>
+                <input type="text" value="https://pi-immo-chain-tunisia.onrender.com/validation-key.txt" readonly onclick="this.select()">
+            </div>
+
+            <div class="field">
+                <label>رابط سياسة الخصوصية (Privacy Policy URL):</label>
+                <input type="text" value="https://pi-immo-chain-tunisia.onrender.com/#privacy" readonly onclick="this.select()">
+            </div>
+        </div>
+    </div>
+</body>
+</html>
