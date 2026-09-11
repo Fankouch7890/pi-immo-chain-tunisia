@@ -23,7 +23,7 @@ describe('Pi Immo Chain Tunisia Server API Tests', () => {
       let data = '';
       res.on('data', chunk => data += chunk);
       res.on('end', () => {
-        assert.strictEqual(data.trim(), '428d3931b0c0a0dc0173257fa411af');
+        assert.strictEqual(data.trim(), '428d3931b0c0a0dc0173257fa411af2e24dd8b1def3ca6fd41aa220e2dd98e22a898eb0977e987b5a8577d9216c2583dd290602c4a4edf307c0395c789f95b5f');
         done();
       });
     });
