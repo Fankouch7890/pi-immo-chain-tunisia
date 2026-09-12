@@ -59,9 +59,37 @@ function initPiSDK() {
         try {
             Pi.init({ version: "2.0", sandbox: true });
             console.log("Pi SDK initialized successfully.");
+
+            // Authenticate user & handle incomplete payments
+            const scopes = ['payments', 'username'];
+            Pi.authenticate(scopes, onIncompletePaymentFound).then(function(auth) {
+                console.log("Pi User Authenticated:", auth);
+                if (auth && auth.user && auth.user.username) {
+                    userWallet = auth.user.username;
+                    walletBtnText.innerText = `@${auth.user.username}`;
+                    walletBtn.classList.add('wallet-connected');
+                }
+            }).catch(function(error) {
+                console.warn("Pi Authentication error:", error);
+            });
         } catch (e) {
             console.warn("Pi SDK init warning:", e);
         }
+    }
+}
+
+function onIncompletePaymentFound(payment) {
+    console.log("Incomplete payment found:", payment);
+    if (payment && payment.identifier) {
+        return fetch('/api/pi/complete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                paymentId: payment.identifier,
+                txid: payment.transaction ? payment.transaction.txid : ('0x' + Math.random().toString(16).substring(2, 10)),
+                propertyId: payment.metadata ? payment.metadata.propertyId : 'tn-prop-001'
+            })
+        });
     }
 }
 

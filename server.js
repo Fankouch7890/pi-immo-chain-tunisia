@@ -267,17 +267,51 @@ app.get('/api/contract/:txHash', (req, res) => {
   });
 });
 
+// Helper to call Pi Platform API if PI_SERVER_API_KEY or PI_API_KEY is configured
+async function callPiPlatformApi(endpoint, method = 'POST', data = {}) {
+  const apiKey = process.env.PI_SERVER_API_KEY || process.env.PI_API_KEY;
+  if (!apiKey) return null;
+
+  try {
+    const fetch = (await import('node-fetch')).default || global.fetch;
+    const baseUrl = process.env.PI_API_URL || 'https://api.minepi.com/v2';
+    const response = await fetch(`${baseUrl}${endpoint}`, {
+      method,
+      headers: {
+        'Authorization': `Key ${apiKey}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(data)
+    });
+    return await response.json();
+  } catch (err) {
+    console.error('Pi Platform API error:', err);
+    return null;
+  }
+}
+
 // Server-side Pi Network Payment Approval endpoint
-app.post('/api/pi/approve', (req, res) => {
+app.post('/api/pi/approve', async (req, res) => {
   const { paymentId, propertyId } = req.body;
   console.log(`Pi Payment Approved on server: paymentId=${paymentId}, propertyId=${propertyId}`);
+
+  const apiKey = process.env.PI_SERVER_API_KEY || process.env.PI_API_KEY;
+  if (paymentId && apiKey) {
+    await callPiPlatformApi(`/payments/${paymentId}/approve`, 'POST');
+  }
+
   res.json({ success: true, message: 'Payment approved by app server', paymentId });
 });
 
 // Server-side Pi Network Payment Completion endpoint
-app.post('/api/pi/complete', (req, res) => {
+app.post('/api/pi/complete', async (req, res) => {
   const { paymentId, txid, propertyId, buyerWallet, amountPi } = req.body;
   console.log(`Pi Payment Completed: paymentId=${paymentId}, txid=${txid}`);
+
+  const apiKey = process.env.PI_SERVER_API_KEY || process.env.PI_API_KEY;
+  if (paymentId && txid && apiKey) {
+    await callPiPlatformApi(`/payments/${paymentId}/complete`, 'POST', { txid });
+  }
 
   const prop = properties.find(p => p.id === propertyId);
   const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
