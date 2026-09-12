@@ -45,12 +45,25 @@ const contractReceiptBody = document.getElementById('contractReceiptBody');
 
 // Initialize Application
 document.addEventListener('DOMContentLoaded', () => {
+    initPiSDK();
     fetchProperties();
     fetchLedger();
     fetchRewards();
     initLeafletMap();
     setupEventListeners();
 });
+
+// Initialize Pi Network SDK
+function initPiSDK() {
+    if (typeof Pi !== 'undefined') {
+        try {
+            Pi.init({ version: "2.0", sandbox: true });
+            console.log("Pi SDK initialized successfully.");
+        } catch (e) {
+            console.warn("Pi SDK init warning:", e);
+        }
+    }
+}
 
 // Initialize Leaflet Map
 function initLeafletMap() {
@@ -355,6 +368,67 @@ async function executePiPayment(propertyId, amountPi) {
     confirmPayBtn.disabled = true;
     confirmPayBtn.innerHTML = `<i class="fa-solid fa-spinner fa-spin"></i> جاري الاتصال بشبكة Pi Network وتوثيق البلوكشين...`;
 
+    // Check if running inside Pi Browser with Pi SDK available
+    if (typeof Pi !== 'undefined' && typeof Pi.createPayment === 'function') {
+        const paymentData = {
+            amount: amountPi,
+            memo: `شراء عقار ${propertyId} عبر Pi Immo Chain Tunisia`,
+            metadata: { propertyId: propertyId }
+        };
+
+        const paymentCallbacks = {
+            onReadyForServerApproval: async (paymentId) => {
+                console.log("Ready for approval paymentId:", paymentId);
+                await fetch('/api/pi/approve', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ paymentId, propertyId })
+                });
+            },
+            onReadyForServerCompletion: async (paymentId, txid) => {
+                console.log("Ready for completion paymentId:", paymentId, "txid:", txid);
+                const res = await fetch('/api/pi/complete', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ paymentId, txid, propertyId, buyerWallet, amountPi })
+                });
+                const data = await res.json();
+                paymentResult.innerHTML = `
+                    <div class="alert alert-success">
+                        <i class="fa-solid fa-circle-check"></i> تم تأكيد وتوثيق المعاملة بنجاح على Pi Network!<br>
+                        <small>رمز المعاملة (TxID): <code>${txid}</code></small><br>
+                        <small>مبروك! حصلت على +${data.cashbackPIT || Math.round(amountPi * 0.1)} $PIT كاشباك.</small>
+                    </div>
+                `;
+                confirmPayBtn.style.display = 'none';
+                fetchLedger();
+                fetchRewards();
+            },
+            onCancel: (paymentId) => {
+                paymentResult.innerHTML = `<div class="alert alert-warning">تم إلغاء المعاملة من قبل المستخدم.</div>`;
+                confirmPayBtn.disabled = false;
+                confirmPayBtn.innerText = 'إعادة المحاولة';
+            },
+            onError: (error, payment) => {
+                console.error("Pi Payment Error:", error, payment);
+                // Fallback to demo payment if SDK error in sandbox
+                fallbackDemoPayment(propertyId, buyerWallet, amountPi, confirmPayBtn, paymentResult);
+            }
+        };
+
+        try {
+            Pi.createPayment(paymentData, paymentCallbacks);
+        } catch (e) {
+            console.error("SDK createPayment exception:", e);
+            fallbackDemoPayment(propertyId, buyerWallet, amountPi, confirmPayBtn, paymentResult);
+        }
+    } else {
+        // Fallback for standard browsers / testing outside Pi Browser
+        fallbackDemoPayment(propertyId, buyerWallet, amountPi, confirmPayBtn, paymentResult);
+    }
+}
+
+async function fallbackDemoPayment(propertyId, buyerWallet, amountPi, confirmPayBtn, paymentResult) {
     try {
         const res = await fetch('/api/pi/pay', {
             method: 'POST',

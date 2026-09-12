@@ -267,6 +267,45 @@ app.get('/api/contract/:txHash', (req, res) => {
   });
 });
 
+// Server-side Pi Network Payment Approval endpoint
+app.post('/api/pi/approve', (req, res) => {
+  const { paymentId, propertyId } = req.body;
+  console.log(`Pi Payment Approved on server: paymentId=${paymentId}, propertyId=${propertyId}`);
+  res.json({ success: true, message: 'Payment approved by app server', paymentId });
+});
+
+// Server-side Pi Network Payment Completion endpoint
+app.post('/api/pi/complete', (req, res) => {
+  const { paymentId, txid, propertyId, buyerWallet, amountPi } = req.body;
+  console.log(`Pi Payment Completed: paymentId=${paymentId}, txid=${txid}`);
+
+  const prop = properties.find(p => p.id === propertyId);
+  const now = new Date().toISOString().replace('T', ' ').substring(0, 16);
+
+  const newTx = {
+    txHash: txid || ('0x' + Math.random().toString(16).substring(2, 10)),
+    propertyId: propertyId || 'tn-prop-001',
+    propertyTitle: prop ? prop.title : 'عقار تونس',
+    buyerWallet: buyerWallet || 'G_PI_BROWSER_USER',
+    amountPi: amountPi || 100,
+    status: 'مكتملة ومثبتة',
+    timestamp: now
+  };
+
+  blockchainLedger.unshift(newTx);
+
+  const pitEarned = Math.round((amountPi || 100) * 0.1);
+  userRewards.balancePIT += pitEarned;
+
+  res.json({
+    success: true,
+    message: 'تم إكمال المعاملة وتوثيق العقد الذكي بنجاح',
+    txHash: newTx.txHash,
+    transaction: newTx,
+    cashbackPIT: pitEarned
+  });
+});
+
 // Execute Pi Payment / Smart Contract Transaction
 app.post('/api/pi/pay', (req, res) => {
   const { propertyId, buyerWallet, amountPi } = req.body;

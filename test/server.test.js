@@ -142,6 +142,36 @@ describe('Pi Immo Chain Tunisia Server API Tests', () => {
     req.end();
   });
 
+  test('POST /api/pi/approve & /api/pi/complete - handles Pi payment SDK callbacks', (t, done) => {
+    const approveData = JSON.stringify({ paymentId: 'pay_123', propertyId: 'tn-prop-001' });
+    const req = http.request(`${baseUrl}/api/pi/approve`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(approveData) }
+    }, (res) => {
+      assert.strictEqual(res.statusCode, 200);
+
+      const completeData = JSON.stringify({ paymentId: 'pay_123', txid: '0xtest_txid', propertyId: 'tn-prop-001', amountPi: 100 });
+      const reqComplete = http.request(`${baseUrl}/api/pi/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(completeData) }
+      }, (resComplete) => {
+        assert.strictEqual(resComplete.statusCode, 200);
+        let data = '';
+        resComplete.on('data', chunk => data += chunk);
+        resComplete.on('end', () => {
+          const json = JSON.parse(data);
+          assert.strictEqual(json.success, true);
+          assert.strictEqual(json.txHash, '0xtest_txid');
+          done();
+        });
+      });
+      reqComplete.write(completeData);
+      reqComplete.end();
+    });
+    req.write(approveData);
+    req.end();
+  });
+
   test('GET /api/contract/:txHash - generates digital smart contract receipt', (t, done) => {
     http.get(`${baseUrl}/api/contract/0x8f3c9b12a`, (res) => {
       assert.strictEqual(res.statusCode, 200);
